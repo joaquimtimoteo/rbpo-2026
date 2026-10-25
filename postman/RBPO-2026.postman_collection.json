@@ -1,0 +1,1033 @@
+{
+  "info": {
+    "name": "RBPO-2026 — Задание 3",
+    "description": "CRUD для всех сущностей и сквозной сценарий бизнес-операций. baseUrl=http://localhost:8080.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Security — Task 4",
+      "item": [
+        {
+          "name": "1. Get CSRF token (run first)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/csrf",
+            "description": "Run first. Postman cookie jar keeps JSESSIONID; test script stores the token."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"csrfToken\", body.token);",
+                  "pm.test(\"CSRF token returned\", () => pm.expect(body.token).to.be.a(\"string\").and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Register student (no role field allowed)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Task Four Student\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/auth/register",
+            "description": "Use a unique email. Registration always assigns STUDENT."
+          }
+        },
+        {
+          "name": "3. Current account (student should succeed)",
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{studentEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{studentPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        },
+        {
+          "name": "4. Student forbidden from CRUD (expect 403)",
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{studentEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{studentPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/rooms",
+            "description": "Expected result: 403 Forbidden; the student role cannot access administrative CRUD."
+          }
+        },
+        {
+          "name": "5. Staff can read rooms",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/rooms",
+            "description": "Uses collection-level STAFF Basic Auth. Set staffEmail/staffPassword to the bootstrap account."
+          }
+        },
+        {
+          "name": "6. Missing CSRF token (expect 403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Should Fail\",\n  \"email\": \"csrf-fail@example.test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/users",
+            "description": "Expected result: 403 because X-CSRF-TOKEN is missing."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/users",
+            "description": ""
+          }
+        },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/users",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Demo Student\",\n  \"email\": \"demo.student@example.test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) { const d=pm.response.json(); if (d.id) pm.collectionVariables.set('userId', d.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/users/{{userId}}",
+            "description": ""
+          }
+        },
+        {
+          "name": "Update (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/users/{{userId}}",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Demo Student Updated\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/users/{{userId}}",
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rooms",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/rooms",
+            "description": ""
+          }
+        },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rooms",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"number\": \"C-301\",\n  \"capacity\": 2,\n  \"available\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) { const d=pm.response.json(); if (d.id) pm.collectionVariables.set('roomId', d.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/rooms/{{roomId}}",
+            "description": ""
+          }
+        },
+        {
+          "name": "Update (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rooms/{{roomId}}",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"capacity\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rooms/{{roomId}}",
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Housing applications",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/housing-applications",
+            "description": ""
+          }
+        },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/housing-applications",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicantId\": \"{{userId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) { const d=pm.response.json(); if (d.id) pm.collectionVariables.set('applicationId', d.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/housing-applications/{{applicationId}}",
+            "description": ""
+          }
+        },
+        {
+          "name": "Update (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/housing-applications/{{applicationId}}",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"APPROVED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/housing-applications/{{applicationId}}",
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Residence contracts",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/residence-contracts",
+            "description": ""
+          }
+        },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/residence-contracts",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": \"{{applicationId}}\",\n  \"roomId\": \"{{roomId}}\",\n  \"moveInDate\": \"2026-10-25\",\n  \"moveOutDate\": \"2027-06-30\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) { const d=pm.response.json(); if (d.id) pm.collectionVariables.set('contractId', d.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/residence-contracts/{{contractId}}",
+            "description": ""
+          }
+        },
+        {
+          "name": "Update (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/residence-contracts/{{contractId}}",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moveOutDate\": \"2027-07-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/residence-contracts/{{contractId}}",
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Room transfer requests",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/room-transfer-requests",
+            "description": ""
+          }
+        },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/room-transfer-requests",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contractId\": \"{{contractId}}\",\n  \"targetRoomId\": 9002\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) { const d=pm.response.json(); if (d.id) pm.collectionVariables.set('transferId', d.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/room-transfer-requests/{{transferId}}",
+            "description": ""
+          }
+        },
+        {
+          "name": "Update (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/room-transfer-requests/{{transferId}}",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"REJECTED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/room-transfer-requests/{{transferId}}",
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Business scenario — execute in order",
+      "description": "Execute requests from top to bottom. Room 9002 is inserted by demo data.sql.",
+      "item": [
+        {
+          "name": "1. Create user for business flow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/users",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Business Flow Student\",\n  \"email\": \"business.flow.student@example.test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===201 || pm.response.code===200){pm.collectionVariables.set('flowUserId',pm.response.json().id);}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Create destination room",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/rooms",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"number\": \"FLOW-ROOM-01\",\n  \"capacity\": 2,\n  \"available\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===201 || pm.response.code===200){pm.collectionVariables.set('flowRoomId',pm.response.json().id);}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Submit housing application (business operation)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/housing-applications",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicantId\": \"{{flowUserId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===201 || pm.response.code===200){pm.collectionVariables.set('flowApplicationId',pm.response.json().id);}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Approve application (business operation)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/housing-applications/{{flowApplicationId}}",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"APPROVED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "5. Create residence contract (business operation)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/residence-contracts",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": \"{{flowApplicationId}}\",\n  \"roomId\": \"{{flowRoomId}}\",\n  \"moveInDate\": \"2026-10-25\",\n  \"moveOutDate\": \"2027-06-30\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===201 || pm.response.code===200){pm.collectionVariables.set('flowContractId',pm.response.json().id);}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6. Request transfer (business operation)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/room-transfer-requests",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contractId\": \"{{flowContractId}}\",\n  \"targetRoomId\": 9002\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.response.code===201 || pm.response.code===200){pm.collectionVariables.set('flowTransferId',pm.response.json().id);}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7. Approve transfer (business operation across contract and room)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/room-transfer-requests/{{flowTransferId}}",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"APPROVED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "8. Terminate residence contract (business operation)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-TOKEN",
+                "value": "{{csrfToken}}",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/residence-contracts/{{flowContractId}}",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"TERMINATED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/info/statistics",
+            "description": ""
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "userId",
+      "value": "9001"
+    },
+    {
+      "key": "roomId",
+      "value": "9002"
+    },
+    {
+      "key": "applicationId",
+      "value": "9002"
+    },
+    {
+      "key": "contractId",
+      "value": "9001"
+    },
+    {
+      "key": "transferId",
+      "value": "9001"
+    },
+    {
+      "key": "staffEmail",
+      "value": "staff@example.test"
+    },
+    {
+      "key": "staffPassword",
+      "value": "REPLACE_WITH_STAFF_PASSWORD"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@example.test"
+    },
+    {
+      "key": "adminPassword",
+      "value": "REPLACE_WITH_ADMIN_PASSWORD"
+    },
+    {
+      "key": "studentEmail",
+      "value": "student.task4@example.test"
+    },
+    {
+      "key": "studentPassword",
+      "value": "StudentStrong_2026!"
+    },
+    {
+      "key": "csrfToken",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "basic",
+    "basic": [
+      {
+        "key": "username",
+        "value": "{{staffEmail}}",
+        "type": "string"
+      },
+      {
+        "key": "password",
+        "value": "{{staffPassword}}",
+        "type": "string"
+      }
+    ]
+  }
+}
